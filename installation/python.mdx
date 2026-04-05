@@ -1,0 +1,178 @@
+---
+title: "Python installation"
+description: "Install and run the Airplane Tracker MCP Server using Python and a virtual environment."
+---
+
+## Prerequisites
+
+- Python 3.8 or later — check with `python --version`
+- Claude Desktop installed on your machine
+- Internet connection to reach the airplanes.live API
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Bellaposa/airplanes-live-mcp.git
+    cd airplanes-live-mcp
+    ```
+  </Step>
+
+  <Step title="Create a virtual environment">
+    <Warning>
+      The virtual environment is mandatory. Skipping this step will cause a `ModuleNotFoundError` when the server starts, because Claude Desktop needs the full path to the venv Python binary — not the system Python — to find installed packages.
+    </Warning>
+
+    ```bash
+    python -m venv .venv
+    ```
+
+    This creates an isolated `.venv` directory inside the repository. All dependencies will be installed here and will not affect your system Python.
+  </Step>
+
+  <Step title="Activate the virtual environment">
+    <Tabs>
+      <Tab title="macOS / Linux">
+        ```bash
+        source .venv/bin/activate
+        ```
+
+        Your shell prompt will show `(.venv)` when the environment is active.
+      </Tab>
+      <Tab title="Windows">
+        ```bash
+        .venv\Scripts\activate
+        ```
+
+        On Windows, the activation script is in `Scripts\` rather than `bin/`. Your prompt will show `(.venv)` when active.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Install dependencies">
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    This installs:
+    - `mcp[cli]>=1.2.0` — MCP server framework
+    - `fastmcp>=0.2.0` — FastMCP server framework
+    - `httpx>=0.25.0` — async HTTP client for API requests
+  </Step>
+
+  <Step title="Test the server">
+    ```bash
+    python airplane_server.py
+    ```
+
+    The server starts and waits for MCP input over stdin. Press `Ctrl+C` to stop. If you see an error, check the troubleshooting section below.
+  </Step>
+
+  <Step title="Configure Claude Desktop">
+    Add the server to your Claude Desktop configuration. Use the **full absolute path** to the `.venv` Python binary.
+
+    <Tabs>
+      <Tab title="macOS">
+        File: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+        ```json
+        {
+          "mcpServers": {
+            "airplanes-live": {
+              "command": "/path/to/airplanes-live-mcp/.venv/bin/python",
+              "args": ["/path/to/airplanes-live-mcp/airplane_server.py"],
+              "env": {
+                "PYTHONPATH": "/path/to/airplanes-live-mcp"
+              }
+            }
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="Linux">
+        File: `~/.config/claude-desktop/config.json`
+
+        ```json
+        {
+          "mcpServers": {
+            "airplanes-live": {
+              "command": "/path/to/airplanes-live-mcp/.venv/bin/python",
+              "args": ["/path/to/airplanes-live-mcp/airplane_server.py"],
+              "env": {
+                "PYTHONPATH": "/path/to/airplanes-live-mcp"
+              }
+            }
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="Windows">
+        File: `%APPDATA%\Claude\claude_desktop_config.json`
+
+        ```json
+        {
+          "mcpServers": {
+            "airplanes-live": {
+              "command": "C:\\Users\\YourUsername\\airplanes-live-mcp\\.venv\\Scripts\\python.exe",
+              "args": ["C:\\Users\\YourUsername\\airplanes-live-mcp\\airplane_server.py"],
+              "env": {
+                "PYTHONPATH": "C:\\Users\\YourUsername\\airplanes-live-mcp"
+              }
+            }
+          }
+        }
+        ```
+
+        Replace `YourUsername` with your actual Windows username.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Restart Claude Desktop">
+    Quit Claude Desktop completely and reopen it. The MCP server will connect automatically on startup.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="ModuleNotFoundError: No module named 'httpx' (or 'mcp')">
+    This means Claude Desktop is using the system Python instead of the virtual environment Python.
+
+    Check the `command` field in your config. It must point to the Python binary inside `.venv`:
+
+    - macOS/Linux: `.venv/bin/python`
+    - Windows: `.venv\Scripts\python.exe`
+
+    Use the full absolute path, not a relative path.
+  </Accordion>
+
+  <Accordion title="Windows: activation fails or path not found">
+    On Windows, the virtual environment activation script is at `.venv\Scripts\activate`, not `.venv\bin\activate`. The Python binary is `python.exe` inside `Scripts\`, not `bin/`.
+
+    In your Claude Desktop config, use `Scripts\\python.exe` with double backslashes:
+
+    ```
+    C:\\Users\\YourUsername\\airplanes-live-mcp\\.venv\\Scripts\\python.exe
+    ```
+  </Accordion>
+
+  <Accordion title="'python' command not found">
+    Try `python3` or `py` instead of `python`, depending on your OS and installation:
+
+    ```bash
+    python3 -m venv .venv
+    python3 airplane_server.py
+    ```
+
+    Verify your Python version with `python3 --version`. Python 3.8 or later is required.
+  </Accordion>
+
+  <Accordion title="Tools don't appear in Claude after restart">
+    1. Confirm the virtual environment exists: `ls .venv/` (macOS/Linux) or `dir .venv\` (Windows).
+    2. Confirm dependencies are installed: `.venv/bin/pip list` and check for `httpx` and `mcp`.
+    3. Check that all paths in `claude_desktop_config.json` use absolute paths.
+    4. Quit Claude Desktop completely (not just close the window) before reopening.
+  </Accordion>
+</AccordionGroup>

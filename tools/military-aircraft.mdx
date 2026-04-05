@@ -1,0 +1,48 @@
+---
+title: "military_aircraft"
+description: "Retrieve all live aircraft tagged as military."
+---
+
+Returns all aircraft currently airborne that are tagged as military in the airplanes.live database. No parameters required.
+
+## Parameters
+
+This tool takes no parameters.
+
+## Example queries
+
+Ask Claude:
+- "What military aircraft are flying right now?"
+- "Show me all military planes in the air"
+- "List active military aircraft"
+
+## Example response
+
+```
+🎖️ Found 12 military aircraft:
+
+✈️ Callsign: RCH123
+🛩️ Type: C17
+📍 Position: 38.9072, -77.0369
+📏 Altitude: 25000 ft
+⚡ Ground Speed: 380 knots
+🧭 Track: 270°
+🔖 Mode S Hex: ae1234
+👁️ Last Seen: 4 seconds ago
+──────────────────────────────────────────────────
+✈️ Callsign: REACH45
+🛩️ Type: KC135
+📍 Position: 51.1234, -1.5678
+📏 Altitude: 30000 ft
+...
+```
+
+## Notes
+
+<Note>
+  Military aircraft coverage depends on what transponder data is available. Some military aircraft operate without transponders or with limited ADS-B output and will not appear.
+</Note>
+
+<Note>
+  This data is provided for educational purposes only. Always refer to official sources for authoritative military flight information.
+</Note>

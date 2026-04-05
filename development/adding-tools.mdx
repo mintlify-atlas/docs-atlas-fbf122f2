@@ -1,0 +1,175 @@
+---
+title: "Adding New Tools"
+description: "How to add a new tool to the Airplane Tracker MCP Server."
+---
+
+The FastMCP server (`airplane_server_fastmcp.py`) is the preferred place to add new tools. A new tool is a single decorated async function — no separate registration step required.
+
+<Note>
+  If you need to add a tool to the standard MCP server (`airplane_server.py`) instead, see the [Standard MCP section](#standard-mcp-airplane_serverpy) at the bottom of this page.
+</Note>
+
+## Adding a tool to the FastMCP server
+
+<Steps>
+  <Step title="Write the tool function">
+    Add a new `async` function decorated with `@mcp.tool()` to `airplane_server_fastmcp.py`. The function name becomes the tool name. The docstring provides the description shown to Claude. Type hints on parameters are used to generate the input schema.
+
+    ```python
+    @mcp.tool()
+    async def new_tool(param1: str, param2: str = "default") -> str:
+        """Single-line description of what this tool does.
+
+        Args:
+            param1: Description of param1
+            param2: Description of param2 (default: "default")
+        """
+        if not param1.strip():
+            return "❌ Error: param1 is required"
+
+        try:
+            result = await make_api_request("/endpoint")
+            formatted = format_aircraft_data(result.get('ac', []))
+            return f"✅ Success:\n\n{formatted}"
+        except Exception as e:
+            return f"❌ Error: {str(e)}"
+    ```
+
+    Place the function alongside the existing tool functions, before the `if __name__ == "__main__":` block.
+  </Step>
+
+  <Step title="Rebuild the Docker image">
+    If you are running the server via Docker, rebuild the image to include the new function.
+
+    ```bash
+    docker build -t airplane-mcp-server .
+    ```
+  </Step>
+
+  <Step title="Restart Claude Desktop">
+    Claude Desktop caches the tool list at startup. Restart it to pick up the new tool.
+
+    After restarting, open a new conversation and ask Claude to list available tools — your new tool should appear.
+  </Step>
+</Steps>
+
+## Using `make_api_request()`
+
+All HTTP calls to the airplanes.live API go through this function. Pass the path segment after the base URL (`https://api.airplanes.live/v2`).
+
+```python
+# Fetch aircraft near a lat/lon pair
+data = await make_api_request(f"/point/{lat}/{lon}/{radius}")
+
+# Fetch aircraft by squawk code
+data = await make_api_request(f"/squawk/{squawk_code}")
+
+# Fetch all military aircraft
+data = await make_api_request("/mil")
+```
+
+The function sets a 15-second timeout and calls `response.raise_for_status()`, so any 4xx or 5xx response raises an `httpx.HTTPStatusError`. Wrap calls in `try/except Exception` to return a readable error string instead of crashing the tool.
+
+```python
+async def make_api_request(endpoint):
+    async with httpx.AsyncClient(timeout=15) as client:
+        url = f"{API_BASE_URL}{endpoint}"
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.json()
+```
+
+## Using `format_aircraft_data()`
+
+Pass the `ac` list from an API response to this function to get a consistently formatted string.
+
+```python
+formatted = format_aircraft_data(result.get('ac', []))
+```
+
+The function handles missing fields gracefully — it only outputs lines for fields that are present in the data. The fields it knows about are:
+
+| Field | Output |
+|---|---|
+| `callsign` | `✈️ Callsign: BA387` |
+| `reg` | `📋 Registration: G-EUPT` |
+| `type` | `🛩️ Type: A320` |
+| `lat` + `lon` | `📍 Position: 51.4775, -0.4614` |
+| `alt_baro` | `📏 Altitude: 35000 ft` |
+| `gs` | `⚡ Ground Speed: 450 knots` |
+| `track` | `🧭 Track: 270°` |
+| `hex` | `🔢 Mode S Hex: 400F3B` |
+| `seen_pos` | `👁️ Last Seen: 3 seconds ago` |
+
+<Tip>
+  If the endpoint you are calling does not return an `ac` array (for example, a single-aircraft lookup that returns a dict), pass the dict directly to `format_aircraft_data()` — it handles both input shapes.
+</Tip>
+
+## Standard MCP (`airplane_server.py`)
+
+Adding a tool to the standard MCP server requires changes in two places.
+
+<Steps>
+  <Step title="Add a Tool() entry to handle_list_tools()">
+    Append a `Tool` object to the list returned by `handle_list_tools()`. The `inputSchema` must be a valid JSON Schema object.
+
+    ```python
+    @server.list_tools()
+    async def handle_list_tools() -> list[Tool]:
+        return [
+            # ...existing tools...
+            Tool(
+                name="new_tool",
+                description="Single-line description of what this tool does",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "param1": {
+                            "type": "string",
+                            "description": "Description of param1"
+                        },
+                        "param2": {
+                            "type": "string",
+                            "description": "Description of param2"
+                        }
+                    },
+                    "required": ["param1"]
+                }
+            ),
+        ]
+    ```
+  </Step>
+
+  <Step title="Add a dispatch case to handle_call_tool()">
+    Add a branch for the new tool name inside `handle_call_tool()`. Return a list containing a `TextContent` object.
+
+    ```python
+    @server.call_tool()
+    async def handle_call_tool(name: str, arguments: dict | None) -> list[TextContent]:
+        if arguments is None:
+            arguments = {}
+
+        # ...existing branches...
+
+        elif name == "new_tool":
+            param1 = arguments.get("param1", "")
+            param2 = arguments.get("param2", "default")
+            if not param1.strip():
+                return [TextContent(type="text", text="❌ Error: param1 is required")]
+            try:
+                result = await make_api_request("/endpoint")
+                formatted = format_aircraft_data(result.get('ac', []))
+                return [TextContent(type="text", text=f"✅ Success:\n\n{formatted}")]
+            except Exception as e:
+                return [TextContent(type="text", text=f"❌ Error: {str(e)}")]
+    ```
+  </Step>
+
+  <Step title="Restart Claude Desktop">
+    Restart Claude Desktop to reload the tool list.
+  </Step>
+</Steps>
+
+<Warning>
+  In `airplane_server.py`, if you add a `Tool()` entry in `handle_list_tools()` but forget the matching case in `handle_call_tool()`, Claude will see the tool but calls to it will silently fail or return an error. Always add both.
+</Warning>

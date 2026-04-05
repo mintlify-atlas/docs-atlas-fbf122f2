@@ -1,0 +1,52 @@
+---
+title: "aircraft_by_registration"
+description: "Search for a live aircraft by its tail number (registration)."
+---
+
+Looks up one or more aircraft by their registration (tail number). Supports comma-separated lists for multiple lookups.
+
+## Parameters
+
+<ParamField path="reg" type="string" required>
+  Aircraft registration or tail number, or a comma-separated list. Examples: `"N123AB"`, `"G-EUPA"`, `"G-ABCD,D-EFGH"`.
+</ParamField>
+
+## Example queries
+
+Ask Claude:
+- "Find aircraft with tail number N123AB"
+- "Show me G-EUPA"
+- "Look up registrations G-ABCD and D-EFGH"
+
+## Example response
+
+```
+🔍 Found 1 aircraft:
+
+✈️ Callsign: BAW123
+📋 Registration: G-EUPA
+🛩️ Type: A350
+📍 Position: 51.4769, -0.4589
+📏 Altitude: 35000 ft
+⚡ Ground Speed: 485 knots
+🧭 Track: 089°
+🔖 Mode S Hex: 406ee9
+👁️ Last Seen: 3 seconds ago
+```
+
+## Registration formats by country
+
+| Prefix | Country |
+|--------|---------|
+| N | United States |
+| G- | United Kingdom |
+| D- | Germany |
+| F- | France |
+| EC- | Spain |
+| I- | Italy |
+| OE- | Austria |
+| HB- | Switzerland |
+
+<Tip>
+  Use comma separation (no spaces) to batch multiple registrations into a single query.
+</Tip>

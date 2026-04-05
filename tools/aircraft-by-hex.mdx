@@ -1,0 +1,45 @@
+---
+title: "aircraft_by_hex"
+description: "Search for a live aircraft by its Mode S hex identifier."
+---
+
+Looks up one or more aircraft by their Mode S transponder hex code — the most precise way to identify a specific physical aircraft. Supports comma-separated lists for multiple lookups.
+
+## Parameters
+
+<ParamField path="hex_id" type="string" required>
+  Mode S hex identifier (6 hexadecimal characters), or a comma-separated list. Examples: `"45211e"`, `"406ee9"`, `"347695,34554D"`.
+</ParamField>
+
+## Example queries
+
+Ask Claude:
+- "Show me aircraft with hex 45211e"
+- "Look up Mode S hex 406ee9"
+- "Find 347695 and 34554D"
+
+## Example response
+
+```
+🔍 Found 1 aircraft:
+
+✈️ Callsign: RYR123
+📋 Registration: EI-DCL
+🛩️ Type: B738
+📍 Position: 53.1234, -6.5678
+📏 Altitude: 28000 ft
+⚡ Ground Speed: 440 knots
+🧭 Track: 265°
+🔖 Mode S Hex: 45211e
+👁️ Last Seen: 2 seconds ago
+```
+
+## Notes
+
+<Note>
+  A Mode S hex code uniquely identifies a specific aircraft frame — unlike callsigns or registrations which can be reassigned. It's the most reliable identifier for tracking a particular aircraft.
+</Note>
+
+<Tip>
+  Hex codes are case-insensitive. Both `"45211e"` and `"45211E"` work.
+</Tip>

@@ -1,23 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Airplane Tracker MCP Server",
+  "projectType": "general",
+  "projectName": "Airplane Tracker MCP Server",
+  "projectDescription": "An MCP server that integrates with the airplanes.live API to provide real-time aircraft tracking capabilities to Claude Desktop and other MCP-compatible AI clients.",
   "theme": "luma",
-  "colors": {
-    "primary": "#94cb04",
-    "light": "#545454"
-  },
-  "favicon": "https://media.brand.dev/288cc7c4-5cef-4376-950b-bdf0083eedae.png",
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/Bellaposa/airplanes-live-mcp"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/Bellaposa/airplanes-live-mcp"
-    }
-  },
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
   "navigation": {
     "tabs": [
       {
@@ -82,5 +70,27 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Real-time aircraft tracking via airplanes.live API",
+    "Search by callsign, registration, hex ID, or ICAO type code",
+    "Position-based radius search (up to 250 nautical miles)",
+    "Squawk code monitoring including emergency codes (7700, 7600, 7500)",
+    "Military, LADD, and PIA aircraft category filters",
+    "Dual server implementations: standard MCP and FastMCP",
+    "Docker containerization for easy deployment",
+    "Async Python architecture with httpx for high-performance requests",
+    "Compatible with Claude Desktop and other MCP-compatible AI clients"
+  ],
+  "publicApiSurface": [
+    "aircraft_by_hex(hex_id: str) -> str",
+    "aircraft_by_callsign(callsign: str) -> str",
+    "aircraft_by_registration(reg: str) -> str",
+    "aircraft_by_type(icao_type: str) -> str",
+    "aircraft_by_squawk(squawk_code: str) -> str",
+    "aircraft_near_position(latitude: float, longitude: float, radius: float = 250) -> str",
+    "military_aircraft() -> str",
+    "ladd_aircraft() -> str",
+    "pia_aircraft() -> str"
+  ]
 }

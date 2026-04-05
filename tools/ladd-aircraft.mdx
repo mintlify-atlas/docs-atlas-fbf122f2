@@ -1,0 +1,45 @@
+---
+title: "ladd_aircraft"
+description: "Retrieve all live aircraft tagged as LADD (law enforcement and security)."
+---
+
+Returns all aircraft currently airborne that are tagged as LADD (Law Enforcement / Security) in the airplanes.live database. No parameters required.
+
+LADD stands for Limiting Aircraft Data Displayed — a designation used for aircraft that have requested limited public tracking, commonly associated with law enforcement and government security operations.
+
+## Parameters
+
+This tool takes no parameters.
+
+## Example queries
+
+Ask Claude:
+- "Show law enforcement aircraft currently flying"
+- "List all LADD aircraft"
+- "What security aircraft are in the air?"
+
+## Example response
+
+```
+🚁 Found 8 LADD aircraft:
+
+🛩️ Type: PC12
+📍 Position: 40.7128, -74.0060
+📏 Altitude: 8000 ft
+⚡ Ground Speed: 220 knots
+🧭 Track: 045°
+🔖 Mode S Hex: a5b6c7
+👁️ Last Seen: 6 seconds ago
+──────────────────────────────────────────────────
+...
+```
+
+## Notes
+
+<Note>
+  LADD aircraft have voluntarily requested limited data display. Some identifying fields like callsign and registration may be absent from their data.
+</Note>
+
+<Note>
+  This data is provided for educational purposes only per the airplanes.live terms of use.
+</Note>

@@ -1,0 +1,71 @@
+---
+title: "aircraft_near_position"
+description: "Find all live aircraft within a radius of a geographic position."
+---
+
+Returns all aircraft currently within a specified radius (in nautical miles) of a given latitude/longitude coordinate. The maximum search radius is 250 nautical miles.
+
+## Parameters
+
+<ParamField path="latitude" type="float" required>
+  Latitude in decimal degrees. Must be between `-90` and `90`.
+</ParamField>
+
+<ParamField path="longitude" type="float" required>
+  Longitude in decimal degrees. Must be between `-180` and `180`.
+</ParamField>
+
+<ParamField path="radius" type="float">
+  Search radius in nautical miles. Default: `250`. Maximum: `250`. Must be greater than `0`.
+</ParamField>
+
+## Example queries
+
+Ask Claude:
+- "Show aircraft within 50nm of New York JFK"
+- "What planes are near London Heathrow right now?"
+- "Find aircraft within 100 nautical miles of 48.8566, 2.3522"
+
+## Example response
+
+```
+📍 Found 23 aircraft within 50 nm of 51.4775, -0.4614:
+
+✈️ Callsign: BAW123
+📋 Registration: G-EUPA
+🛩️ Type: A350
+📍 Position: 51.4769, -0.4589
+📏 Altitude: 35000 ft
+⚡ Ground Speed: 485 knots
+🧭 Track: 089°
+🔖 Mode S Hex: 406ee9
+👁️ Last Seen: 3 seconds ago
+──────────────────────────────────────────────────
+...
+```
+
+## Reference coordinates
+
+| Airport | Latitude | Longitude |
+|---------|----------|-----------|
+| New York JFK | 40.6413 | -73.7781 |
+| London Heathrow | 51.4775 | -0.4614 |
+| Paris CDG | 49.0097 | 2.5479 |
+| Los Angeles LAX | 33.9425 | -118.4081 |
+| Tokyo Narita | 35.7720 | 140.3929 |
+| Dubai DXB | 25.2532 | 55.3657 |
+| Frankfurt FRA | 50.0379 | 8.5622 |
+
+## Notes
+
+<Tip>
+  Use a smaller radius for more focused, faster results. A 50 nm radius around a major hub typically returns 20–80 aircraft.
+</Tip>
+
+<Note>
+  Radius is in **nautical miles** (1 nm ≈ 1.852 km). Results are capped at 1000 aircraft per query.
+</Note>
+
+<Warning>
+  Coordinates must be in decimal degrees format (e.g., `51.4775`), not degrees/minutes/seconds.
+</Warning>

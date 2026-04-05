@@ -1,0 +1,111 @@
+---
+title: "Other MCP clients"
+description: "Connect the Airplane Tracker MCP Server to Cline, the FastMCP Inspector, and any other MCP-compatible client."
+---
+
+The Airplane Tracker MCP Server implements the standard Model Context Protocol over stdio transport. Any MCP-compatible client can connect to it — not just Claude Desktop.
+
+## Server implementations
+
+The repository ships two server files. Choose the one that matches your client or workflow.
+
+<CardGroup cols={2}>
+  <Card title="airplane_server.py" icon="server">
+    Uses the standard `mcp[cli]` library. The recommended choice for Claude Desktop and clients that launch a server process directly.
+  </Card>
+  <Card title="airplane_server_fastmcp.py" icon="bolt">
+    Uses the FastMCP framework with decorator-based syntax. Required for `fastmcp run`, `fastmcp dev`, and the Docker image.
+  </Card>
+</CardGroup>
+
+Both files expose the same 9 aircraft tracking tools and connect to the same airplanes.live API endpoints. The difference is the server framework, not the functionality.
+
+## MCP transport
+
+The server communicates over **stdio** (stdin/stdout). Clients that support the MCP stdio transport can connect by launching the server process and piping input/output. No network ports or authentication are involved.
+
+## Cline (VS Code)
+
+[Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) is an AI coding assistant for VS Code that supports MCP servers.
+
+<Steps>
+  <Step title="Open Cline MCP settings">
+    In VS Code, open the Cline extension panel. Click the **MCP Servers** tab, then **Edit Config** to open the MCP server configuration file.
+  </Step>
+
+  <Step title="Add the server">
+    Add the following entry to the `mcpServers` object:
+
+    ```json
+    {
+      "mcpServers": {
+        "airplane-tracker": {
+          "command": "fastmcp",
+          "args": ["run", "airplane_server_fastmcp.py"]
+        }
+      }
+    }
+    ```
+
+    This uses `fastmcp run` to start the FastMCP server. The `fastmcp` command must be available in your PATH — it is installed with `pip install fastmcp` or as part of the project's `requirements.txt`.
+  </Step>
+
+  <Step title="Save and reload">
+    Save the config file. Cline picks up the new server on the next connection attempt. You can trigger a reconnect from the MCP Servers panel.
+  </Step>
+</Steps>
+
+<Note>
+  Cline uses the `fastmcp run` command, which requires `airplane_server_fastmcp.py`. If you prefer to use the standard `airplane_server.py`, change the `command` and `args` to point to your virtual environment Python binary and the server file path, following the same pattern as the [Claude Desktop configuration](/configuration/claude-desktop).
+</Note>
+
+## FastMCP entrypoint file
+
+The repository includes a `fastmcp.json` file that tells the `fastmcp` CLI which server to load:
+
+```json
+{
+  "entrypoint": "airplane_server_fastmcp.py:mcp"
+}
+```
+
+When you run `fastmcp run` or `fastmcp dev` from the repository root, this file is read automatically. The `airplane_server_fastmcp.py:mcp` value means: load the `mcp` object from `airplane_server_fastmcp.py`.
+
+## FastMCP Inspector
+
+The FastMCP Inspector is a browser-based UI for testing MCP servers before connecting them to an AI client. Use it to verify that tools work correctly and inspect their inputs and outputs.
+
+<Steps>
+  <Step title="Start the Inspector">
+    Run this command from the repository root:
+
+    ```bash
+    fastmcp dev airplane_server_fastmcp.py
+    ```
+
+    FastMCP starts the server and opens the Inspector UI.
+  </Step>
+
+  <Step title="Open the Inspector UI">
+    Navigate to [http://localhost:6274](http://localhost:6274) in your browser. The Inspector lists all available tools with their input schemas.
+  </Step>
+
+  <Step title="Test a tool">
+    Select a tool from the list, fill in the input fields, and click **Run**. The Inspector shows the raw request sent to the server and the response returned.
+  </Step>
+</Steps>
+
+<Tip>
+  Test your server with the FastMCP Inspector before configuring it in Claude Desktop or Cline. This confirms that each tool returns the expected data shape and catches errors without needing to go through an AI client.
+</Tip>
+
+## Other MCP-compatible clients
+
+Any client that supports the MCP stdio transport can use this server. General configuration pattern:
+
+- **Command**: path to the Python binary in your virtual environment, or `fastmcp` if using the FastMCP server
+- **Args**: path to `airplane_server.py` (for standard MCP clients) or `["run", "airplane_server_fastmcp.py"]` (for fastmcp-based clients)
+- **Working directory**: the repository root (required for relative imports to resolve correctly)
+- **Env**: set `PYTHONPATH` to the repository root when using `airplane_server.py` directly
+
+Refer to your client's documentation for the exact config file format and field names.

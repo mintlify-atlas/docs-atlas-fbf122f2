@@ -1,0 +1,45 @@
+---
+title: "aircraft_by_callsign"
+description: "Search for a live aircraft by its ICAO callsign."
+---
+
+Looks up one or more aircraft by their ICAO callsign. You can pass a single callsign or a comma-separated list to search for multiple aircraft at once.
+
+## Parameters
+
+<ParamField path="callsign" type="string" required>
+  ICAO callsign, or a comma-separated list of callsigns. Examples: `"BA387"`, `"UAL123"`, `"AFR1234,BAW456"`.
+</ParamField>
+
+## Example queries
+
+Ask Claude:
+- "Find flight BA387"
+- "Show me UAL123"
+- "Search for BAW456 and AFR1234"
+
+## Example response
+
+```
+🔍 Found 1 aircraft:
+
+✈️ Callsign: BA387
+📋 Registration: G-EUPA
+🛩️ Type: A350
+📍 Position: 51.4769, -0.4589
+📏 Altitude: 35000 ft
+⚡ Ground Speed: 485 knots
+🧭 Track: 089°
+🔖 Mode S Hex: 406ee9
+👁️ Last Seen: 3 seconds ago
+```
+
+## Notes
+
+<Note>
+  ICAO callsigns differ from IATA flight numbers. For example, British Airways flight BA387 uses the ICAO callsign `BAW387`. When in doubt, try both formats.
+</Note>
+
+<Tip>
+  Callsigns are typically uppercase. Use comma separation (no spaces) to batch multiple lookups in a single query.
+</Tip>

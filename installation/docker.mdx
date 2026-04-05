@@ -1,0 +1,180 @@
+---
+title: "Docker installation"
+description: "Run the Airplane Tracker MCP Server in a Docker container — no Python setup required."
+---
+
+Docker bundles Python, dependencies, and the server into a single image. You don't need to manage a virtual environment or install anything beyond Docker itself.
+
+## Prerequisites
+
+- [Docker Desktop](https://docs.docker.com/desktop/) installed and running
+- Claude Desktop installed on your machine
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Bellaposa/airplanes-live-mcp.git
+    cd airplanes-live-mcp
+    ```
+  </Step>
+
+  <Step title="Build the Docker image">
+    ```bash
+    docker build -t airplane-mcp-server .
+    ```
+
+    This builds an image based on `python:3.11-slim`, installs all dependencies from `requirements.txt`, and copies the server code into the image.
+  </Step>
+
+  <Step title="Test the container">
+    ```bash
+    docker run --rm -it airplane-mcp-server python airplane_server.py
+    ```
+
+    The server starts and waits for MCP input. Press `Ctrl+C` to stop. If the server starts without errors, the image is ready.
+  </Step>
+
+  <Step title="Configure Claude Desktop">
+    Add the Docker-based server to your Claude Desktop configuration. The command tells Claude to run the container each time it needs to connect.
+
+    <Tabs>
+      <Tab title="macOS / Linux">
+        File: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+        ```json
+        {
+          "mcpServers": {
+            "airplanes-live": {
+              "command": "docker",
+              "args": [
+                "run", "--rm", "-i",
+                "airplane-mcp-server",
+                "python", "airplane_server.py"
+              ]
+            }
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="Windows">
+        File: `%APPDATA%\Claude\claude_desktop_config.json`
+
+        ```json
+        {
+          "mcpServers": {
+            "airplanes-live": {
+              "command": "docker",
+              "args": [
+                "run", "--rm", "-i",
+                "airplane-mcp-server",
+                "python", "airplane_server.py"
+              ]
+            }
+          }
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Restart Claude Desktop">
+    Quit Claude Desktop completely and reopen it. Claude will start the Docker container automatically on connection.
+  </Step>
+</Steps>
+
+## Docker Compose option
+
+Docker Compose provides a simpler way to manage the container lifecycle, especially if you plan to rebuild frequently.
+
+```bash
+docker-compose up --build
+```
+
+This builds the image and starts the container in one step using the `docker-compose.yml` in the repository root. To stop it, press `Ctrl+C` or run `docker-compose down` in another terminal.
+
+**Claude Desktop configuration for Docker Compose:**
+
+```json
+{
+  "mcpServers": {
+    "airplanes-live": {
+      "command": "docker-compose",
+      "args": [
+        "-f", "/full/path/to/airplanes-live-mcp/docker-compose.yml",
+        "exec", "-T", "airplane-mcp-server",
+        "python", "airplane_server.py"
+      ],
+      "cwd": "/full/path/to/airplanes-live-mcp"
+    }
+  }
+}
+```
+
+Replace `/full/path/to/airplanes-live-mcp` with the absolute path to your cloned repository.
+
+## Why use Docker?
+
+<CardGroup cols={2}>
+  <Card title="No Python setup" icon="circle-check">
+    Python 3.11 and all dependencies are pre-installed inside the image. You don't need to create or manage a virtual environment.
+  </Card>
+  <Card title="Isolated environment" icon="shield">
+    The container has no access to your system Python or other packages, eliminating version conflicts.
+  </Card>
+  <Card title="Works everywhere" icon="globe">
+    The same image and commands work on Windows, macOS, and Linux without platform-specific adjustments.
+  </Card>
+  <Card title="Easy updates" icon="arrows-rotate">
+    To update dependencies or server code, rebuild the image with `docker build -t airplane-mcp-server .`.
+  </Card>
+</CardGroup>
+
+## Docker commands reference
+
+| Command | Description |
+|---------|-------------|
+| `docker build -t airplane-mcp-server .` | Build the image from the local Dockerfile |
+| `docker run --rm -it airplane-mcp-server python airplane_server.py` | Run the MCP server interactively for testing |
+| `docker run --rm -it airplane-mcp-server bash` | Open a shell inside the container |
+| `docker images \| grep airplane-mcp-server` | Check that the image exists |
+| `docker rmi airplane-mcp-server` | Remove the image |
+| `docker logs <container_id>` | View logs from a running or stopped container |
+| `docker system prune -a` | Remove all unused images and containers |
+| `docker-compose up --build` | Build and start via Docker Compose |
+| `docker-compose down` | Stop and remove the Compose container |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="docker: command not found">
+    Docker Desktop is not installed or not in your PATH. Download and install it from [docs.docker.com/desktop](https://docs.docker.com/desktop/), then restart your terminal.
+  </Accordion>
+
+  <Accordion title="Cannot connect to the Docker daemon">
+    Docker Desktop is installed but not running. Open the Docker Desktop application and wait for it to fully start (the status indicator turns green), then retry your command.
+  </Accordion>
+
+  <Accordion title="Permission denied (Linux)">
+    On Linux, running Docker commands without `sudo` requires your user to be in the `docker` group:
+
+    ```bash
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
+
+    Log out and back in if `newgrp docker` does not take effect immediately.
+  </Accordion>
+
+  <Accordion title="Image build fails">
+    Clear the Docker build cache and try again:
+
+    ```bash
+    docker system prune -a
+    docker build --no-cache -t airplane-mcp-server .
+    ```
+
+    This forces Docker to re-download the base image and reinstall all dependencies from scratch.
+  </Accordion>
+</AccordionGroup>

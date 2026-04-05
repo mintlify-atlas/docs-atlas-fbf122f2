@@ -1,0 +1,189 @@
+---
+title: "Architecture"
+description: "How the Airplane Tracker MCP Server is structured, and the design decisions behind it."
+---
+
+## System overview
+
+The server acts as a bridge between Claude Desktop and the [airplanes.live](https://airplanes.live) API. All communication between Claude and the server uses the MCP stdio transport — meaning data flows over stdin/stdout, not HTTP.
+
+```
+Claude Desktop → MCP Protocol (stdio) → airplane_server.py → make_api_request() → airplanes.live API
+                                                                                           ↓
+Claude Desktop ← TextContent          ← airplane_server.py ← format_aircraft_data() ←────┘
+```
+
+The server never opens a network port. Claude Desktop launches it as a subprocess and communicates by writing JSON-RPC messages to its stdin and reading responses from its stdout.
+
+## Two server implementations
+
+The project ships two server files that expose the same tools through different approaches.
+
+<Tabs>
+  <Tab title="FastMCP (recommended)">
+    `airplane_server_fastmcp.py` uses the [FastMCP](https://github.com/jlowin/fastmcp) framework. Each tool is a plain async function decorated with `@mcp.tool()`. FastMCP handles tool registration, schema generation, and dispatch automatically.
+
+    ```python
+    from fastmcp import FastMCP
+    mcp = FastMCP("airplane-tracker")
+
+    @mcp.tool()
+    async def aircraft_by_hex(hex_id: str) -> str:
+        """Search for aircraft by Mode S hex ID (comma-separated for multiple).
+
+        Args:
+            hex_id: Mode S hex ID (e.g., "347695" or "347695,34554D")
+        """
+        data = await make_api_request(f"/hex/{hex_id}")
+        formatted = format_aircraft_data(data.get('ac', []))
+        count = len(data.get('ac', []))
+        return f"🔍 Found {count} aircraft:\n\n{formatted}"
+    ```
+
+    FastMCP derives the tool name, description, and input schema directly from the function signature and docstring. Adding a new tool is a single decorated function.
+  </Tab>
+  <Tab title="Standard MCP">
+    `airplane_server.py` uses the low-level `mcp` library. Tool registration and dispatch are explicit: `handle_list_tools()` returns the full tool list, and `handle_call_tool()` routes each call by name.
+
+    ```python
+    from mcp.server import Server
+    from mcp.types import Tool, TextContent
+    from mcp.server.stdio import stdio_server
+
+    server = Server("airplane-tracker")
+
+    @server.list_tools()
+    async def handle_list_tools() -> list[Tool]:
+        return [
+            Tool(
+                name="aircraft_by_hex",
+                description="Search for aircraft by Mode S hex ID (comma-separated for multiple)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "hex_id": {"type": "string", "description": "Mode S hex ID"}
+                    },
+                    "required": ["hex_id"]
+                }
+            ),
+            # ...more tools
+        ]
+
+    @server.call_tool()
+    async def handle_call_tool(name: str, arguments: dict | None) -> list[TextContent]:
+        if arguments is None:
+            arguments = {}
+        # tool dispatch logic
+
+    async def main():
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(read_stream, write_stream, server.create_initialization_options())
+    ```
+
+    Every new tool requires both a `Tool()` entry in `handle_list_tools()` and a matching dispatch case in `handle_call_tool()`.
+  </Tab>
+</Tabs>
+
+<CardGroup cols={2}>
+  <Card title="FastMCP" icon="bolt">
+    Decorator-based. Schema generated from type hints and docstrings. Easier to extend. Used in the Docker image.
+  </Card>
+  <Card title="Standard MCP" icon="code">
+    Explicit tool registration and dispatch. More verbose but exposes the full MCP protocol surface. Useful for advanced customisation.
+  </Card>
+</CardGroup>
+
+## Key design decisions
+
+### Async implementation
+
+Every tool function is `async`. This allows the server to handle the full request-response cycle without blocking, which matters when the upstream API is slow.
+
+```python
+async def make_api_request(endpoint):
+    async with httpx.AsyncClient(timeout=15) as client:
+        url = f"{API_BASE_URL}{endpoint}"
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.json()
+```
+
+### String-based parameters
+
+All tool parameters are plain strings (e.g., `hex_id: str`, `callsign: str`). The MCP protocol works best with simple scalar types, and string inputs are easy for Claude to construct from natural language.
+
+### Centralised error handling
+
+Every tool wraps its logic in a `try/except` block and returns a user-readable error string rather than raising an exception. This keeps Claude's response coherent even when the API is unavailable.
+
+### `format_aircraft_data()`
+
+A single formatting function handles all aircraft display output. It accepts either a list or a dict, iterates over aircraft records, and builds a consistent multi-line string from whichever fields are present.
+
+```python
+def format_aircraft_data(aircraft_data):
+    """Format aircraft data for display."""
+    for ac in ac_list:
+        info = []
+        if ac.get('callsign'): info.append(f"✈️ Callsign: {ac['callsign'].strip()}")
+        if ac.get('reg'):      info.append(f"📋 Registration: {ac['reg']}")
+        if ac.get('type'):     info.append(f"🛩️ Type: {ac['type']}")
+        if ac.get('lat') is not None and ac.get('lon') is not None:
+            info.append(f"📍 Position: {ac['lat']:.4f}, {ac['lon']:.4f}")
+        if ac.get('alt_baro'): info.append(f"📏 Altitude: {ac['alt_baro']} ft")
+        if ac.get('gs'):       info.append(f"⚡ Ground Speed: {ac['gs']} knots")
+        if ac.get('track'):    info.append(f"🧭 Track: {ac['track']}°")
+        if ac.get('hex'):      info.append(f"🔢 Mode S Hex: {ac['hex']}")
+        if ac.get('seen_pos'): info.append(f"👁️ Last Seen: {ac['seen_pos']} seconds ago")
+```
+
+All fields are optional — the function only appends lines for data that exists in the response.
+
+### `make_api_request()`
+
+All HTTP calls go through a single function that sets the base URL and a 15-second timeout. This avoids duplicating HTTP setup in every tool and makes it easy to change transport settings globally.
+
+```python
+API_BASE_URL = "https://api.airplanes.live/v2"
+
+async def make_api_request(endpoint):
+    async with httpx.AsyncClient(timeout=15) as client:
+        url = f"{API_BASE_URL}{endpoint}"
+        response = await client.get(url)
+        response.raise_for_status()
+        return response.json()
+```
+
+## MCP stdio transport
+
+Claude Desktop starts the server as a child process. Communication uses newline-delimited JSON-RPC 2.0 messages on stdin/stdout. There is no HTTP server, no port binding, and no authentication — the process lifetime is tied to Claude Desktop.
+
+<Note>
+  Because the server communicates via stdio, you can test it manually by piping JSON-RPC messages directly:
+
+  ```bash
+  echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | python airplane_server.py
+  ```
+</Note>
+
+## Docker container
+
+The Docker image runs `airplane_server_fastmcp.py` via the `fastmcp` CLI. A non-root user (`mcpuser`) is created to follow least-privilege principles.
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY airplane_server_fastmcp.py .
+RUN useradd -m -u 1000 mcpuser && chown -R mcpuser:mcpuser /app
+USER mcpuser
+CMD ["fastmcp", "run", "airplane_server_fastmcp.py"]
+```
+
+`PYTHONUNBUFFERED=1` ensures that stdout is not buffered, which is required for the stdio transport to work correctly inside a container.
+
+<Warning>
+  Do not run the container as root. The `mcpuser` account is intentionally unprivileged. If you modify the Dockerfile, preserve the `USER mcpuser` directive.
+</Warning>

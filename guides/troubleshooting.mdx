@@ -1,0 +1,156 @@
+---
+title: "Troubleshooting"
+description: "Solutions to common problems when installing and running the Airplane Tracker MCP Server."
+---
+
+## Common problems
+
+<AccordionGroup>
+  <Accordion title="Tools don't appear in Claude">
+    The airplane tracker tools are missing from Claude's tool list after restarting.
+
+    **Check that the Docker image exists (Docker installation):**
+
+    ```bash
+    docker images | grep airplane-mcp-server
+    ```
+
+    If nothing is listed, the image hasn't been built. Build it:
+
+    ```bash
+    docker build -t airplane-mcp-server .
+    ```
+
+    **Check that paths in your config are correct (Python installation):**
+
+    Open your `claude_desktop_config.json` and verify that the `command` path points to the Python binary inside your `.venv` directory, not the system Python:
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "/full/path/to/airplanes-live-mcp/.venv/bin/python",
+          "args": ["/full/path/to/airplanes-live-mcp/airplane_server.py"]
+        }
+      }
+    }
+    ```
+
+    **Restart Claude Desktop completely:**
+
+    Quit the application — don't just close the window. On macOS, right-click the Dock icon and select **Quit**. On Windows, right-click the system tray icon and select **Exit**. Then reopen Claude Desktop.
+  </Accordion>
+
+  <Accordion title="No aircraft found">
+    The tool runs without error but returns no results.
+
+    - **Wrong coordinates.** Confirm latitude comes first, longitude second. New York is `40.7128, -74.0060` — not the other way around.
+    - **Radius too small.** A 5 nm radius around a rural area may have no traffic. Try 50–100 nm first, then narrow down.
+    - **No traffic in the area.** Remote locations, polar routes, and restricted airspace may genuinely have no tracked aircraft at a given time.
+    - **Wrong type code case.** Type codes must be uppercase. `B738` works; `b738` returns nothing. Check the ICAO type code against a reference if you're unsure.
+    - **Callsign format.** Callsigns use ICAO airline codes, not IATA. United Airlines is `UAL`, not `UA`. British Airways is `BAW`, not `BA`.
+  </Accordion>
+
+  <Accordion title="API timeout">
+    Claude reports a timeout or the tool takes more than 15 seconds to respond.
+
+    The airplanes.live API may be under load or temporarily rate-limiting your requests.
+
+    - Wait 30 seconds and try again.
+    - Try a simpler, more targeted query — for example, search by callsign instead of all aircraft in a large radius.
+    - Check your internet connection. The server must be able to reach `api.airplanes.live`.
+
+    Typical response times are 500ms–1s for most queries. Queries returning many aircraft (large radius, common type code) may take 1–2s. The timeout is 15 seconds.
+  </Accordion>
+
+  <Accordion title="Permission denied running Docker (Linux)">
+    Running any `docker` command produces:
+
+    ```
+    permission denied while trying to connect to the Docker daemon socket
+    ```
+
+    Add your user to the `docker` group:
+
+    ```bash
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
+
+    If `newgrp docker` doesn't take effect in your current terminal, log out and back in.
+  </Accordion>
+
+  <Accordion title="ModuleNotFoundError when starting the server">
+    Running `python airplane_server.py` produces:
+
+    ```
+    ModuleNotFoundError: No module named 'mcp'
+    ```
+
+    Your virtual environment is not activated. Activate it before running the server:
+
+    <Tabs>
+      <Tab title="macOS / Linux">
+        ```bash
+        source .venv/bin/activate
+        pip install -r requirements.txt
+        ```
+      </Tab>
+      <Tab title="Windows">
+        ```bash
+        .venv\Scripts\activate
+        pip install -r requirements.txt
+        ```
+      </Tab>
+    </Tabs>
+
+    If the `.venv` directory doesn't exist, create it first:
+
+    ```bash
+    python -m venv .venv
+    ```
+  </Accordion>
+
+  <Accordion title="Windows path errors in claude_desktop_config.json">
+    Claude Desktop fails to start the server on Windows with a path-related error.
+
+    - Use double backslashes in all paths: `C:\\Users\\Name\\airplanes-live-mcp\\airplane_server.py`
+    - The Python binary on Windows is in `Scripts`, not `bin`: `.venv\Scripts\python.exe`
+    - Use the full absolute path — do not use `~` or relative paths
+
+    Correct Windows configuration:
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "C:\\Users\\YourUsername\\airplanes-live-mcp\\.venv\\Scripts\\python.exe",
+          "args": ["C:\\Users\\YourUsername\\airplanes-live-mcp\\airplane_server.py"],
+          "env": {
+            "PYTHONPATH": "C:\\Users\\YourUsername\\airplanes-live-mcp"
+          }
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Cannot connect to the Docker daemon">
+    Any `docker` command returns:
+
+    ```
+    Cannot connect to the Docker daemon at unix:///var/run/docker.sock
+    ```
+
+    Docker Desktop is not running. Open the Docker Desktop application and wait for it to fully start — the status indicator in the menu bar (macOS) or system tray (Windows) turns green when ready. Then retry your command.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Performance tips
+
+- **Use specific searches.** A callsign or registration lookup hits a single endpoint and returns in under 500ms. A 250 nm radius query may return up to 1000 aircraft and takes longer.
+- **Avoid repeated rapid queries.** The airplanes.live API reflects live transponder data refreshed every few seconds. Querying the same area repeatedly within a few seconds returns the same data and adds unnecessary load.
+- **Filter before querying.** If you want Boeing 737s near an airport, search by type (`B738`) first to see the global picture, then narrow by position if needed.
+- **Results are capped at 1000 aircraft.** Queries that would return more than 1000 aircraft are truncated. Use a smaller radius or a more specific type code to get complete results.

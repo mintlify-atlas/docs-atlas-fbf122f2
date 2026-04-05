@@ -1,0 +1,193 @@
+---
+title: "Deployment"
+description: "Options for running the Airplane Tracker MCP Server — locally with Docker or on a cloud platform."
+---
+
+The server communicates over stdio (stdin/stdout) and is typically launched by Claude Desktop as a subprocess. The most common deployment is local — either Python directly or via Docker. Cloud platforms can host the container if you need it to run persistently or on a shared machine.
+
+<Note>
+  Local Docker is the simplest option if you just want to avoid setting up Python. Cloud platforms make sense if you need the server running continuously on a remote machine and connect to it via SSH or a remote development environment.
+</Note>
+
+## Local Docker
+
+Run the server in a container on your own machine — no Python environment required.
+
+<Steps>
+  <Step title="Clone and build the image">
+    ```bash
+    git clone https://github.com/Bellaposa/airplanes-live-mcp.git
+    cd airplanes-live-mcp
+    docker build -t airplane-mcp-server .
+    ```
+  </Step>
+
+  <Step title="Test the container">
+    ```bash
+    docker run --rm -i airplane-mcp-server
+    ```
+
+    The container starts the FastMCP server and waits for MCP input on stdin. Press `Ctrl+C` to stop.
+  </Step>
+
+  <Step title="Configure Claude Desktop">
+    Claude Desktop launches the container as a subprocess for each session. Add this to your `claude_desktop_config.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "docker",
+          "args": ["run", "--rm", "-i", "airplane-mcp-server", "python", "airplane_server.py"]
+        }
+      }
+    }
+    ```
+
+    See [Docker installation](/installation/docker) for the full setup guide.
+  </Step>
+</Steps>
+
+## Docker Compose
+
+The repository includes a `docker-compose.yml` for managing the container lifecycle:
+
+```bash
+# Build and start
+docker-compose up --build
+
+# Stop
+docker-compose down
+```
+
+The Compose file sets `stdin_open: true` and `PYTHONUNBUFFERED=1`, which are required for the stdio transport to work correctly.
+
+---
+
+## Cloud platforms
+
+The following platforms can host the Docker container if you need it to run on a remote machine. Because this server uses stdio transport (not HTTP), you would connect to it from a remote client that launches it as a subprocess — for example, via SSH or a remote dev environment.
+
+<Warning>
+  Cloud deployment of an MCP stdio server requires the MCP client to launch the server process remotely. This is an advanced setup. Most users will get the best experience running the server locally via Python or Docker.
+</Warning>
+
+<Tabs>
+  <Tab title="Railway">
+    Railway detects the `Dockerfile` automatically and deploys the container.
+
+    **Estimated cost:** ~$5/month
+
+    <Steps>
+      <Step title="Push your repository to GitHub">
+        Fork or push `airplanes-live-mcp` to your GitHub account.
+      </Step>
+
+      <Step title="Create a new Railway project">
+        Go to [railway.app](https://railway.app), click **New Project**, and select **Deploy from GitHub repo**. Choose your forked repository.
+      </Step>
+
+      <Step title="Deploy">
+        Railway detects the `Dockerfile` and builds automatically. Click **Deploy Now**.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Fly.io">
+    Fly.io gives you control over regions and machine sizes.
+
+    **Estimated cost:** ~$3/month
+
+    <Steps>
+      <Step title="Install the Fly CLI and log in">
+        ```bash
+        curl -L https://fly.io/install.sh | sh
+        fly auth login
+        ```
+      </Step>
+
+      <Step title="Launch the app">
+        ```bash
+        cd airplanes-live-mcp
+        fly launch
+        fly deploy
+        ```
+
+        Fly detects the `Dockerfile` automatically.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Render">
+    Render offers a free tier for testing.
+
+    <Warning>
+      Render's free tier spins down the service after 15 minutes of inactivity. The container will need to restart on the next request.
+    </Warning>
+
+    <Steps>
+      <Step title="Create a new Web Service on Render">
+        Go to [render.com](https://render.com), click **New > Web Service**, and connect your GitHub repository.
+      </Step>
+
+      <Step title="Configure the service">
+        Set **Environment** to **Docker**. Render builds from the `Dockerfile` automatically.
+      </Step>
+
+      <Step title="Deploy">
+        Click **Create Web Service**. Render builds and starts the container.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Google Cloud Run">
+    Cloud Run runs containers on demand.
+
+    **Estimated cost:** ~$0.01 per 1,000 requests (plus free tier)
+
+    <Steps>
+      <Step title="Install and configure the Google Cloud CLI">
+        ```bash
+        gcloud auth login
+        gcloud config set project YOUR_PROJECT_ID
+        ```
+      </Step>
+
+      <Step title="Build and push the container image">
+        ```bash
+        cd airplanes-live-mcp
+        gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/airplane-mcp-server
+        ```
+      </Step>
+
+      <Step title="Deploy to Cloud Run">
+        ```bash
+        gcloud run deploy airplane-mcp-server \
+          --image gcr.io/YOUR_PROJECT_ID/airplane-mcp-server \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+---
+
+## Choosing a deployment method
+
+<CardGroup cols={2}>
+  <Card title="Local Python" icon="python">
+    Simplest for developers. Run directly with a virtual environment. Best for development and testing.
+  </Card>
+  <Card title="Local Docker" icon="docker">
+    No Python setup required. Isolated, consistent, and easy to rebuild. Best for non-developer users on any platform.
+  </Card>
+  <Card title="Railway / Fly.io / Render" icon="cloud">
+    Host on a remote machine. Useful for shared setups or always-on access from a remote client. ~$3–5/month.
+  </Card>
+  <Card title="Google Cloud Run" icon="google">
+    Pay-per-use. Best for variable or infrequent workloads on Google Cloud infrastructure.
+  </Card>
+</CardGroup>

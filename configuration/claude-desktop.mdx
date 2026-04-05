@@ -1,0 +1,180 @@
+---
+title: "Claude Desktop configuration"
+description: "Configure Claude Desktop to connect to the Airplane Tracker MCP Server on macOS, Linux, and Windows."
+---
+
+Claude Desktop reads its MCP server list from a JSON config file. You add the Airplane Tracker server to that file, restart Claude, and the tools become available in every conversation.
+
+## Config file location
+
+<Tabs>
+  <Tab title="macOS">
+    ```
+    ~/Library/Application Support/Claude/claude_desktop_config.json
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ```
+    ~/.config/claude-desktop/config.json
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```
+    %APPDATA%\Claude\claude_desktop_config.json
+    ```
+
+    Open File Explorer and paste `%APPDATA%\Claude\` into the address bar to navigate directly to the folder.
+  </Tab>
+</Tabs>
+
+If the file does not exist, create it. If it already has entries under `mcpServers`, add the new server alongside the existing ones.
+
+## Configuration
+
+Choose the tab that matches your installation method.
+
+<Tabs>
+  <Tab title="Python — macOS">
+    File: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "/path/to/airplanes-live-mcp/.venv/bin/python",
+          "args": ["/path/to/airplanes-live-mcp/airplane_server.py"],
+          "env": {
+            "PYTHONPATH": "/path/to/airplanes-live-mcp"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `/path/to/airplanes-live-mcp` with the absolute path to your cloned repository. To get the path, run `pwd` inside the repository directory.
+  </Tab>
+  <Tab title="Python — Linux">
+    File: `~/.config/claude-desktop/config.json`
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "/path/to/airplanes-live-mcp/.venv/bin/python",
+          "args": ["/path/to/airplanes-live-mcp/airplane_server.py"],
+          "env": {
+            "PYTHONPATH": "/path/to/airplanes-live-mcp"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `/path/to/airplanes-live-mcp` with the absolute path to your cloned repository. To get the path, run `pwd` inside the repository directory.
+  </Tab>
+  <Tab title="Python — Windows">
+    File: `%APPDATA%\Claude\claude_desktop_config.json`
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "C:\\Users\\YourUsername\\airplanes-live-mcp\\.venv\\Scripts\\python.exe",
+          "args": ["C:\\Users\\YourUsername\\airplanes-live-mcp\\airplane_server.py"],
+          "env": {
+            "PYTHONPATH": "C:\\Users\\YourUsername\\airplanes-live-mcp"
+          }
+        }
+      }
+    }
+    ```
+
+    Replace `YourUsername` with your actual Windows username. All backslashes in paths must be doubled (`\\`) because JSON uses `\` as an escape character.
+
+    <Warning>
+      On Windows, the Python binary is at `.venv\Scripts\python.exe`, not `.venv\bin\python`. Using the wrong path causes a startup error.
+    </Warning>
+  </Tab>
+  <Tab title="Docker">
+    The Docker config works identically on macOS, Linux, and Windows. Claude starts the container each time it connects.
+
+    ```json
+    {
+      "mcpServers": {
+        "airplanes-live": {
+          "command": "docker",
+          "args": ["run", "--rm", "-i", "airplane-mcp-server", "python", "airplane_server.py"]
+        }
+      }
+    }
+    ```
+
+    You must build the image before this config will work. See [Docker installation](/installation/docker) for build instructions.
+  </Tab>
+</Tabs>
+
+## Apply the config
+
+<Steps>
+  <Step title="Save the config file">
+    Save `claude_desktop_config.json` after making your edits. Confirm the file contains valid JSON — a missing comma or bracket will prevent Claude from loading the server.
+  </Step>
+
+  <Step title="Quit Claude Desktop completely">
+    On macOS, right-click the Claude icon in the Dock and select **Quit**. On Windows, right-click the system tray icon and select **Quit**. Closing the window alone does not stop the process.
+  </Step>
+
+  <Step title="Reopen Claude Desktop">
+    Launch Claude Desktop. It reads the config file at startup and attempts to connect to each listed MCP server.
+  </Step>
+
+  <Step title="Verify the connection">
+    Open a new conversation. Click the tools icon (hammer) in the compose bar. You should see the Airplane Tracker tools listed — `aircraft_by_callsign`, `military_aircraft`, and the other 7 tools.
+
+    If the tools icon shows no tools or the server is listed as failed, see the troubleshooting section below.
+  </Step>
+</Steps>
+
+## Common mistakes and fixes
+
+<AccordionGroup>
+  <Accordion title="Tools don't appear after restart">
+    1. Confirm that Claude Desktop was fully quit before restarting — not just minimized or window-closed.
+    2. Open `claude_desktop_config.json` and validate it at [jsonlint.com](https://jsonlint.com). A syntax error silently prevents the file from loading.
+    3. Check that the `command` path points to the virtual environment Python, not system Python. The path must include `.venv/bin/python` (macOS/Linux) or `.venv\Scripts\python.exe` (Windows).
+    4. Confirm all paths are absolute. Relative paths like `./airplane_server.py` do not work.
+  </Accordion>
+
+  <Accordion title="Server listed as failed or errored">
+    Claude Desktop shows a red indicator when the server process exits with an error. Common causes:
+
+    - The Python binary path is wrong or the `.venv` directory doesn't exist — run the installation steps in [Python installation](/installation/python).
+    - The Docker image hasn't been built — run `docker build -t airplane-mcp-server .` first.
+    - The `PYTHONPATH` env variable is missing, causing an import error. Confirm the `env` block is present in your config.
+  </Accordion>
+
+  <Accordion title="ModuleNotFoundError on startup">
+    Claude Desktop is using the system Python instead of the virtual environment Python. The `command` field must point to the Python binary inside `.venv`:
+
+    - macOS/Linux: `/absolute/path/to/airplanes-live-mcp/.venv/bin/python`
+    - Windows: `C:\\Users\\YourUsername\\airplanes-live-mcp\\.venv\\Scripts\\python.exe`
+
+    Do not use `/usr/bin/python3`, `python`, or `python3` as the command — these resolve to system Python and won't have the required packages.
+  </Accordion>
+
+  <Accordion title="Windows: path errors or server won't start">
+    JSON requires backslashes to be escaped as `\\`. A path like `C:\Users\Alice\airplanes-live-mcp` must be written as `C:\\Users\\Alice\\airplanes-live-mcp` in the config file.
+
+    Also confirm you're using `Scripts\\python.exe`, not `bin/python`. The `bin/` directory does not exist on Windows virtual environments.
+  </Accordion>
+
+  <Accordion title="Docker: 'No such image' error">
+    The Docker image must be built before Claude can use it. Run this command from the repository root:
+
+    ```bash
+    docker build -t airplane-mcp-server .
+    ```
+
+    Confirm the image exists with `docker images | grep airplane-mcp-server`.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,62 @@
+---
+title: "aircraft_by_type"
+description: "Search for all live aircraft of a given ICAO type code."
+---
+
+Returns all aircraft currently airborne that match a given ICAO type code. Useful for finding every Boeing 737, Airbus A321, or Cessna 172 currently in the air.
+
+## Parameters
+
+<ParamField path="icao_type" type="string" required>
+  ICAO aircraft type code (uppercase). Examples: `"A321"`, `"B738"`, `"C172"`.
+</ParamField>
+
+## Example queries
+
+Ask Claude:
+- "Show all Boeing 737-800s in the air"
+- "How many Airbus A321s are flying right now?"
+- "Find every Cessna 172"
+
+## Example response
+
+```
+🔍 Found 247 aircraft of type B738:
+
+✈️ Callsign: UAL456
+📋 Registration: N78501
+🛩️ Type: B738
+📍 Position: 40.1234, -75.5678
+📏 Altitude: 33000 ft
+⚡ Ground Speed: 465 knots
+🧭 Track: 095°
+🔖 Mode S Hex: a1b2c3
+👁️ Last Seen: 1 seconds ago
+──────────────────────────────────────────────────
+✈️ Callsign: SWA789
+...
+```
+
+## Common ICAO type codes
+
+| Type Code | Aircraft |
+|-----------|---------|
+| A20N | Airbus A320neo |
+| A321 | Airbus A321 |
+| A332 | Airbus A330-200 |
+| A359 | Airbus A350-900 |
+| B737 | Boeing 737-700 |
+| B738 | Boeing 737-800 |
+| B77W | Boeing 777-300ER |
+| B789 | Boeing 787-9 |
+| C172 | Cessna 172 |
+| E190 | Embraer 190 |
+| DH8D | Bombardier Dash 8 Q400 |
+
+<Warning>
+  Always use **uppercase** type codes. `"b738"` will not return results — use `"B738"`.
+</Warning>
+
+<Note>
+  Results are capped at 1000 aircraft per query. Popular aircraft types like B738 may have many more aircraft airborne globally.
+</Note>

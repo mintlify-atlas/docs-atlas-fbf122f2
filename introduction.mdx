@@ -1,0 +1,64 @@
+---
+title: "Introduction"
+description: "Connect Claude Desktop and other MCP clients to the airplanes.live API for real-time aircraft tracking."
+---
+
+The Airplane Tracker MCP Server bridges AI assistants and live flight data. It exposes the [airplanes.live API](https://airplanes.live/api-guide/) as a set of tools that any MCP-compatible client — including Claude Desktop — can call directly from a conversation.
+
+Ask Claude "Show me military aircraft" or "Find flight BA387" and it queries the live data feed, formats the result, and returns it inline. No browser switching, no manual API calls.
+
+## What is MCP?
+
+MCP (Model Context Protocol) is an open standard that lets AI clients call external tools. When you configure an MCP server, the AI client discovers the available tools and can invoke them on your behalf during a conversation. The Airplane Tracker MCP Server implements this protocol so Claude can access real-time aircraft data.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="9 tracking tools" icon="wrench">
+    Search aircraft by callsign, registration, hex ID, type, squawk code, or position — plus dedicated tools for military, LADD, and PIA fleets.
+  </Card>
+  <Card title="Real-time data" icon="satellite-dish">
+    All queries hit the live airplanes.live feed. Data reflects current aircraft positions, altitudes, and speeds.
+  </Card>
+  <Card title="Two server implementations" icon="code">
+    Choose the standard MCP server (`airplane_server.py`) or the FastMCP server (`airplane_server_fastmcp.py`) depending on your setup.
+  </Card>
+  <Card title="Python and Docker support" icon="cube">
+    Run directly with a Python virtual environment or containerize with Docker — both paths are fully supported.
+  </Card>
+  <Card title="Claude Desktop integration" icon="desktop">
+    Works out of the box with Claude Desktop on macOS, Linux, and Windows via a single JSON config entry.
+  </Card>
+  <Card title="Open source" icon="github">
+    MIT licensed. Read the code, contribute improvements, or adapt it as a starting point for your own MCP server.
+  </Card>
+</CardGroup>
+
+## Server implementations
+
+The repository includes two server files:
+
+| File | Library | Use case |
+|------|---------|----------|
+| `airplane_server.py` | `mcp[cli]` | Standard MCP server. Use this for Claude Desktop configuration and direct testing. |
+| `airplane_server_fastmcp.py` | `fastmcp` | FastMCP server. Used by the Docker image and `fastmcp run` command. |
+
+Both implementations expose the same 9 tools and connect to the same airplanes.live API endpoints.
+
+## Available tools
+
+| Tool | Description |
+|------|-------------|
+| `aircraft_by_hex` | Search by Mode S transponder hex ID |
+| `aircraft_by_callsign` | Search by ICAO flight callsign |
+| `aircraft_by_registration` | Search by tail number |
+| `aircraft_by_type` | Search by ICAO type code (e.g., B738, A321) |
+| `aircraft_by_squawk` | Search by squawk code, including 7700 emergency |
+| `aircraft_near_position` | Find all aircraft within a radius of coordinates |
+| `military_aircraft` | List all tracked military aircraft |
+| `ladd_aircraft` | List law enforcement and security aircraft |
+| `pia_aircraft` | List special interest and private aircraft |
+
+<Note>
+  This project uses the [airplanes.live API](https://airplanes.live/api-guide/), which is provided for **educational and non-commercial use only**. Commercial use, high-volume requests, and redistribution of data for profit are not permitted under the API terms. Review the full terms before deploying this server.
+</Note>

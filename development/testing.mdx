@@ -1,0 +1,121 @@
+---
+title: "Testing"
+description: "How to test the Airplane Tracker MCP Server locally — unit tests, integration tests, and interactive inspection."
+---
+
+## Unit testing
+
+Because every tool function is a plain async Python function, you can call it directly without starting the full MCP server. Use `asyncio.run()` to drive async tests from a regular script.
+
+```python
+import asyncio
+
+async def test_aircraft_by_callsign():
+    result = await aircraft_by_callsign("BA387")
+    assert "✈️" in result
+    assert "Found" in result
+    print(result)
+
+asyncio.run(test_aircraft_by_callsign())
+```
+
+Run the script from the project root:
+
+```bash
+python test_tools.py
+```
+
+<Tip>
+  Use specific, well-known callsigns or hex IDs for reliable test results. Searching for common commercial flights (e.g., `BA387`, `UA123`) is more likely to return live data than obscure identifiers.
+</Tip>
+
+## Integration testing via stdin
+
+You can send raw JSON-RPC messages to the standard MCP server over stdin to verify that the protocol layer is working correctly — without Claude Desktop.
+
+List all registered tools:
+
+```bash
+echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | python airplane_server.py
+```
+
+The server should respond with a JSON object containing a `tools` array. Confirm that every expected tool name appears in the list.
+
+Call a specific tool:
+
+```bash
+echo '{"jsonrpc":"2.0","method":"tools/call","id":2,"params":{"name":"aircraft_by_callsign","arguments":{"callsign":"BA387"}}}' | python airplane_server.py
+```
+
+<Note>
+  The stdin integration test works with `airplane_server.py` (standard MCP). The FastMCP server (`airplane_server_fastmcp.py`) uses the same underlying protocol but is easier to test interactively with the FastMCP inspector.
+</Note>
+
+## FastMCP inspector
+
+The `fastmcp dev` command starts a local inspector UI that lets you browse and call tools interactively.
+
+```bash
+fastmcp dev airplane_server_fastmcp.py
+# Opens http://localhost:6274 with all tools visible
+```
+
+All tools are listed in the sidebar. Select a tool, fill in the parameters, and submit to see the raw response. This is the fastest way to check that a newly added tool works correctly before connecting it to Claude Desktop.
+
+## Docker testing
+
+To verify the container environment, run a shell inside the image:
+
+```bash
+docker run --rm -it airplane-mcp-server bash
+```
+
+From inside the container, start the server and confirm it accepts input:
+
+```bash
+python airplane_server.py
+```
+
+Then pipe a `tools/list` request to confirm the server responds correctly:
+
+```bash
+echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | python airplane_server.py
+```
+
+A valid response confirms that dependencies are installed and the server starts cleanly inside the container.
+
+## Verifying the tools list
+
+After any change — adding a tool, modifying a schema, or rebuilding the container — verify the tools list before reconnecting to Claude Desktop.
+
+<Steps>
+  <Step title="Check the raw response">
+    Run the stdin test and confirm the new tool name appears in the `tools` array:
+
+    ```bash
+    echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | python airplane_server.py
+    ```
+  </Step>
+
+  <Step title="Check the tool count">
+    Count the tools in the response and compare against the number of `@mcp.tool()` decorated functions in `airplane_server_fastmcp.py` (or `Tool()` entries in `airplane_server.py`).
+  </Step>
+
+  <Step title="Restart Claude Desktop">
+    Claude Desktop caches the tool list at startup. Always restart it after modifying the server. Open a new conversation and ask Claude to list its available tools to confirm everything is registered.
+  </Step>
+</Steps>
+
+## Performance expectations
+
+| Request type | Typical response time |
+|---|---|
+| Simple lookup (single aircraft) | 500 ms – 1 s |
+| Complex or multi-aircraft query | 1 s – 2 s |
+| Timeout threshold | 15 s |
+
+The 15-second timeout is set in `make_api_request()`. Requests that exceed this will raise an `httpx.ReadTimeout`, which each tool catches and returns as an error string.
+
+<Tip>
+  Narrow searches return faster results. Searching by exact callsign or hex ID is quicker than broad queries like all military aircraft or aircraft near a position with a large radius.
+</Tip>

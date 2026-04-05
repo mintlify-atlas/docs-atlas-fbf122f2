@@ -1,97 +1,68 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Airplane Tracker MCP Server"
+description: "Real-time aircraft tracking for Claude Desktop and MCP-compatible AI clients, powered by the airplanes.live API."
 ---
 
-## Setting up
+Track any aircraft in the world — by callsign, registration, hex ID, or location — directly from Claude Desktop. The Airplane Tracker MCP Server connects Claude to the live airplanes.live data feed, giving you instant access to real-time flight data without leaving your AI conversation.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get tracking aircraft in under 5 minutes with Python or Docker.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Tool Reference" icon="wrench" href="/tools/aircraft-by-callsign">
+    Explore all 9 available tracking tools and their parameters.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Claude Desktop Setup" icon="desktop" href="/configuration/claude-desktop">
+    Configure Claude Desktop to connect to the MCP server.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Usage Examples" icon="plane" href="/guides/usage-examples">
+    See real queries and responses for common tracking scenarios.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What you can track
 
-Everything you need to create world-class documentation.
+<CardGroup cols={3}>
+  <Card title="By callsign" icon="radio" href="/tools/aircraft-by-callsign">
+    Find any flight using its ICAO callsign (e.g., UAL123, BA387)
+  </Card>
+  <Card title="By registration" icon="tag" href="/tools/aircraft-by-registration">
+    Look up aircraft by tail number (e.g., N12345, G-EUPA)
+  </Card>
+  <Card title="By position" icon="location-dot" href="/tools/aircraft-near-position">
+    Discover all aircraft within 250 nm of any coordinates
+  </Card>
+  <Card title="By type" icon="plane-up" href="/tools/aircraft-by-type">
+    Filter by ICAO type code (A321, B738, C172, etc.)
+  </Card>
+  <Card title="By squawk" icon="tower-broadcast" href="/tools/aircraft-by-squawk">
+    Monitor squawk codes including 7700 emergency signals
+  </Card>
+  <Card title="Special fleets" icon="shield" href="/tools/military-aircraft">
+    Track military, LADD, and special interest aircraft
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Get started
 
-## Need inspiration?
+<Steps>
+  <Step title="Install the server">
+    Clone the repository and install dependencies using Python or Docker.
+    ```bash
+    git clone https://github.com/Bellaposa/airplanes-live-mcp.git
+    cd airplanes-live-mcp
+    python -m venv .venv && source .venv/bin/activate
+    pip install -r requirements.txt
+    ```
+  </Step>
+  <Step title="Configure Claude Desktop">
+    Add the server to your Claude Desktop configuration file so Claude can connect to it.
+  </Step>
+  <Step title="Start tracking">
+    Ask Claude anything about live air traffic: "Show me aircraft near New York" or "Find flight BA387".
+  </Step>
+</Steps>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+  This project uses the [airplanes.live API](https://airplanes.live/api-guide/) which is provided for **educational and non-commercial use only**. Please review the API terms before use.
+</Note>

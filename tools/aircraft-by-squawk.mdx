@@ -1,0 +1,54 @@
+---
+title: "aircraft_by_squawk"
+description: "Search for live aircraft broadcasting a specific squawk code."
+---
+
+Returns all aircraft currently squawking a given 4-digit transponder code. Particularly useful for monitoring emergency squawk codes.
+
+## Parameters
+
+<ParamField path="squawk_code" type="string" required>
+  4-digit squawk code. Examples: `"7700"`, `"7600"`, `"7500"`, `"1200"`.
+</ParamField>
+
+## Example queries
+
+Ask Claude:
+- "Find aircraft squawking 7700"
+- "Are any aircraft declaring an emergency right now?"
+- "Show aircraft squawking 1200"
+
+## Example response
+
+```
+🚨 Found 2 aircraft squawking 7700:
+
+✈️ Callsign: ABC123
+📋 Registration: N45678
+🛩️ Type: B738
+📍 Position: 48.8566, 2.3522
+📏 Altitude: 12000 ft
+⚡ Ground Speed: 280 knots
+🧭 Track: 180°
+🔖 Mode S Hex: abcdef
+👁️ Last Seen: 5 seconds ago
+```
+
+## Common squawk codes
+
+| Code | Meaning |
+|------|---------|
+| **7700** | General emergency |
+| **7600** | Radio communications failure |
+| **7500** | Unlawful interference (hijacking) |
+| 1200 | VFR flight (United States) |
+| 2000 | Arriving IFR flight (international) |
+| 7000 | VFR flight (Europe) |
+
+<Warning>
+  Squawk **7700** indicates a general aviation emergency. Aircraft squawking 7700 are actively declaring an emergency situation.
+</Warning>
+
+<Note>
+  Emergency squawk codes (7500, 7600, 7700) may return zero results when no aircraft are currently broadcasting them — this is normal and expected.
+</Note>

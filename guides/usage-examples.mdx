@@ -1,0 +1,153 @@
+---
+title: "Usage examples"
+description: "Real queries to ask Claude using the Airplane Tracker MCP Server, with example responses."
+---
+
+Once the server is connected to Claude Desktop, you can ask questions about live air traffic in plain English. Claude selects the right tool automatically based on your query.
+
+## Searching by identity
+
+### Callsign lookup
+
+Ask Claude to find a specific flight by its callsign — the alphanumeric code assigned by the airline for each flight.
+
+> "Find flight UAL123"
+
+```
+✈️ Callsign: UAL123
+📋 Registration: N37462
+🛩️ Type: B738
+📍 Position: 41.8781, -87.6298
+📏 Altitude: 28000 ft
+⚡ Ground Speed: 412 knots
+🧭 Track: 274°
+🔖 Mode S Hex: a4d2f1
+👁️ Last Seen: 2 seconds ago
+```
+
+### Registration lookup
+
+Use the aircraft's tail number (registration) to identify a specific airframe.
+
+> "What's the aircraft with registration G-EUPA flying right now?"
+
+<Note>
+  Registrations are unique to a single airframe, whereas callsigns can change between flights. Use registration lookup when you care about a specific plane rather than a specific route.
+</Note>
+
+### Hex code lookup
+
+Each aircraft has a permanent 24-bit ICAO address expressed as a hex code. Use this for precise identification when you already know the Mode S hex.
+
+> "What's the registration of hex 45211e?"
+
+```
+✈️ Callsign: BAW387
+📋 Registration: G-EUPA
+🛩️ Type: A35K
+📍 Position: 51.4769, -0.4589
+📏 Altitude: 35000 ft
+⚡ Ground Speed: 485 knots
+🧭 Track: 089°
+🔖 Mode S Hex: 45211e
+👁️ Last Seen: 3 seconds ago
+```
+
+---
+
+## Searching by location
+
+### Aircraft near a position
+
+Find all aircraft within a given radius of a latitude/longitude point. Radius is in nautical miles, with a maximum of 250 nm.
+
+> "Show me aircraft near 40.7128, -74.0060 within 50nm"
+
+This query covers the airspace around New York City. Claude calls `aircraft_near_position` with a 50 nm radius.
+
+> "Show aircraft within 100nm of London Heathrow (51.4775, -0.4614)"
+
+<Tip>
+  If you get too many results, reduce the radius. If you get no results, increase it or check that the coordinates are correct — latitude comes first, longitude second.
+</Tip>
+
+**Radius guidance:**
+
+| Radius | Coverage |
+|--------|----------|
+| 25 nm | Single airport and immediate approach paths |
+| 50 nm | Major metropolitan area |
+| 100 nm | Regional airspace |
+| 250 nm | Maximum — large country or ocean sector |
+
+---
+
+## Searching by type
+
+### All aircraft of a specific type
+
+Find every airborne aircraft matching an ICAO type code.
+
+> "Show all Boeing 737s in the air"
+
+Claude uses the ICAO type code `B738` for the 737-800, the most common variant. Results are capped at 1000 aircraft.
+
+<Warning>
+  Type codes are case-sensitive and must be uppercase. `b738` will return no results; `B738` will work correctly.
+</Warning>
+
+**Common ICAO type codes:**
+
+| Aircraft | ICAO code |
+|----------|-----------|
+| Boeing 737-800 | `B738` |
+| Boeing 777-300ER | `B77W` |
+| Airbus A320 | `A320` |
+| Airbus A350-900 | `A359` |
+| Airbus A380 | `A388` |
+| Embraer E175 | `E175` |
+
+---
+
+## Searching by category
+
+### Military aircraft
+
+Query all military aircraft currently tracked worldwide.
+
+> "What military aircraft are flying right now?"
+
+This calls the `military_aircraft` tool, which returns all aircraft with military operator flag codes. Expect a large result set — military traffic is global.
+
+### Emergency squawk codes
+
+Squawk codes are 4-digit transponder codes set by pilots. Three codes have special meaning:
+
+| Squawk | Meaning |
+|--------|---------|
+| `7700` | General emergency |
+| `7600` | Communications failure |
+| `7500` | Unlawful interference (hijacking) |
+
+> "Find aircraft squawking 7700"
+
+<Warning>
+  Squawk 7700 results are real, live emergency declarations. The data comes directly from transponder signals. Most squawk 7700 events are precautionary, but treat them as genuine until confirmed otherwise.
+</Warning>
+
+### LADD and PIA aircraft
+
+> "Show me LADD aircraft"
+
+LADD (Limiting Aircraft Data Displayed) is an FAA program that hides certain aircraft from public tracking. PIA (Privacy ICAO Address) aircraft use temporary hex codes to prevent tracking. The server can query both categories.
+
+---
+
+## Tips for effective queries
+
+- **Use uppercase type codes.** `A320` works; `a320` does not.
+- **Callsigns follow ICAO format.** United Airlines is `UAL`, not `UA` (the IATA code). British Airways is `BAW`, not `BA`.
+- **Coordinates are decimal degrees.** Use `51.4775, -0.4614`, not degrees/minutes/seconds.
+- **Radius is in nautical miles.** 1 nautical mile ≈ 1.15 statute miles.
+- **Results cap at 1000 aircraft.** High-density queries (large radius, common type) will be truncated.
+- **Queries take 500ms–1s** under normal conditions. Complex queries or slow API responses may take up to 2 seconds. A 15-second timeout applies to all requests.
